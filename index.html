@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#11143f">
+<title>CANDYVERSE Floating AR</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090a12;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#camera{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;background:#111}
+#stage{position:fixed;inset:0;overflow:hidden;touch-action:none}
+#logo{
+ position:absolute;left:50%;top:48%;width:min(88vw,760px);height:auto;
+ transform:translate(-50%,-50%);object-fit:contain;user-select:none;
+ -webkit-user-drag:none;touch-action:none;
+ filter:drop-shadow(0 12px 22px rgba(0,0,0,.38));
+}
+#panel{position:fixed;left:12px;right:12px;bottom:max(14px,env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;justify-content:center;gap:8px;z-index:5}
+button{border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:12px 16px;background:rgba(17,20,63,.88);color:#fff;font-size:14px;font-weight:650;backdrop-filter:blur(12px)}
+button.primary{background:#f8d56a;color:#11143f;border-color:#f8d56a}
+#message{position:fixed;top:max(18px,env(safe-area-inset-top));left:14px;right:14px;text-align:center;color:white;font-size:13px;line-height:1.45;text-shadow:0 1px 5px #000;z-index:4}
+#startScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:28px;background:#11143f;z-index:10;text-align:center}
+#startScreen .card{max-width:440px}
+#startScreen img{width:100%;height:auto;margin-bottom:26px}
+h1{font-size:27px;margin:0 0 10px}
+p{color:#e0e2f3;line-height:1.55;font-size:15px}
+.small{font-size:12px;color:#c7c9dd}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<video id="camera" autoplay playsinline muted></video>
+<div id="stage">
+  <img id="logo" src="CANDYVERSE_AR_logo.png" alt="CANDYVERSE logo">
+</div>
+<div id="message" class="hidden">Drag the logo to position it in your camera view. Use + / − to resize.</div>
+<div id="panel" class="hidden">
+  <button id="smaller" aria-label="Make logo smaller">−</button>
+  <button id="larger" aria-label="Make logo larger">+</button>
+  <button id="flipCamera">Switch camera</button>
+  <button id="reset">Reset position</button>
+</div>
+<div id="startScreen">
+  <div class="card">
+    <img src="CANDYVERSE_AR_logo.png" alt="CANDYVERSE">
+    <h1>CANDYVERSE Floating AR</h1>
+    <p>See your logo over the live camera view. Move it around the screen and adjust its size.</p>
+    <button class="primary" id="start">Open camera</button>
+    <p class="small">Allow camera access when Safari asks. Use the website over HTTPS.</p>
+    <p class="small">This is a camera-view floating overlay: it follows the screen, not a fixed real-world wall or object.</p>
+  </div>
+</div>
+<script>
+const video=document.getElementById('camera');
+const logo=document.getElementById('logo');
+const startScreen=document.getElementById('startScreen');
+const panel=document.getElementById('panel');
+const message=document.getElementById('message');
+let stream=null, facing='environment', scale=1, x=50, y=48, dragging=false, startX=0,startY=0,baseX=50,baseY=48;
+
+function paint(){
+  logo.style.left=x+'%'; logo.style.top=y+'%';
+  logo.style.width=`min(${88*scale}vw,${760*scale}px)`;
+}
+async function openCamera(){
+  try{
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:facing}}});
+    video.srcObject=stream;
+    await video.play();
+    startScreen.classList.add('hidden');panel.classList.remove('hidden');message.classList.remove('hidden');
+  }catch(e){
+    alert('Camera could not start. Please allow camera access in Safari Settings and reopen this page using its HTTPS GitHub Pages link. Details: '+e.message);
+  }
+}
+document.getElementById('start').addEventListener('click',openCamera);
+document.getElementById('flipCamera').addEventListener('click',async()=>{facing=facing==='environment'?'user':'environment';await openCamera();});
+document.getElementById('larger').addEventListener('click',()=>{scale=Math.min(1.8,scale+.1);paint();});
+document.getElementById('smaller').addEventListener('click',()=>{scale=Math.max(.45,scale-.1);paint();});
+document.getElementById('reset').addEventListener('click',()=>{scale=1;x=50;y=48;paint();});
+logo.addEventListener('pointerdown',e=>{dragging=true;logo.setPointerCapture(e.pointerId);startX=e.clientX;startY=e.clientY;baseX=x;baseY=y;});
+logo.addEventListener('pointermove',e=>{if(!dragging)return; x=Math.max(8,Math.min(92,baseX+(e.clientX-startX)/innerWidth*100)); y=Math.max(8,Math.min(88,baseY+(e.clientY-startY)/innerHeight*100));paint();});
+logo.addEventListener('pointerup',()=>dragging=false);
+logo.addEventListener('pointercancel',()=>dragging=false);
+paint();
+</script>
+</body>
+</html>
